@@ -1,0 +1,339 @@
+AWS
+m5a.2xlarge
+500GB Magnetic
+
+login as: ec2-user
+Authenticating with public key "imported-openssh-key"
+Last login: Wed Dec  5 23:36:35 2018 from 107.13.170.175
+[ec2-user@ip-172-31-59-152 tmp]$ sudo su
+[ec2-user@ip-172-31-59-152 ~]$ cd /tmp
+[root@ip-172-31-59-152 tmp]# cd install_tmp/
+[root@ip-172-31-59-152 install_tmp]# yum install wget -y
+
+https://docs.hortonworks.com/HDPDocuments/Ambari/Ambari-2.7.1.0/index.html
+https://docs.hortonworks.com/HDPDocuments/Ambari-2.7.1.0/bk_ambari-installation/content/download_the_ambari_repo_lnx7.html - follow the steps
+https://docs.hortonworks.com/HDPDocuments/HDF3/HDF-3.3.0/installing-hdf-and-hdp/content/installing_the_hdf_management_pack.html
+https://docs.hortonworks.com/HDPDocuments/HDF3/HDF-3.3.0/release-notes/content/hdf_repository_locations.html
+
+[root@ip-172-31-59-152 install_tmp]# wget http://public-repo-1.hortonworks.com/HDF/centos7/3.x/updates/3.3.0.0/tars/hdf_ambari_mp/hdf-ambari-mpack-3.3.0.0-165.tar.gz
+[root@ip-172-31-59-152 install_tmp]# ls /tmp/install_tmp/hdf-ambari-mpack-3.3.0.0-165.tar.gz - check if fileexists
+[root@ip-172-31-59-152 install_tmp]# ambari-server install-mpack --mpack=/tmp/install_tmp/hdf-ambari-mpack-3.3.0.0-165.tar.gz --verbose
+[root@ip-172-31-59-152 install_tmp]# ambari-server restart
+
+In web server http://54.175.175.229:8080
+Username - admin
+Pwd - admin
+
+[root@ip-172-31-59-152 install_tmp]# sudo yum install mysql-connector-java*
+[root@ip-172-31-59-152 install_tmp]# ls -al /usr/share/java/mysql-connector-java.jar
+[root@ip-172-31-59-152 install_tmp]# ambari-server setup --jdbc-db=mysql --jdbc-driver=/usr/share/java/mysql-connector-java.jar
+[root@ip-172-31-59-152 install_tmp]# yum-config-manager --enable rhui-REGION-rhel-server-optional
+[root@ip-172-31-59-152 install_tmp]# yum install libtirpc-devel
+[root@ip-172-31-59-152 install_tmp]# sysctl -w vm.max_map_count=262144
+
+In ambari server:
+Step 1: Cluster name
+Step 2: Select version - HDP 3.0.1, redhat7
+Step 3: Install options - Private DNS, SSH private key, SSH User Account - ec2-user
+Step 4: Choose services
+Service	Version	Description
+YARN + MapReduce2	3.1.1	Apache Hadoop NextGen MapReduce (YARN)
+Tez	0.9.1	Tez is the next generation Hadoop Query Processing framework written on top of YARN.
+Hive	3.1.0	Data warehouse system for ad-hoc queries & analysis of large datasets and table & storage management service
+ZooKeeper	3.4.6	Centralized service which provides highly reliable distributed coordination
+Infra Solr	0.1.0	Core shared service used by Ambari managed components.
+Ambari Metrics	0.1.0	A system for metrics collection that provides storage and retrieval capability for metrics collected from the cluster
+Kafka	1.1.1	A high-throughput distributed messaging system
+Ranger	1.1.0	Comprehensive security for Hadoop
+Spark2	2.3.1	Apache Spark 2.3 is a fast and general engine for large-scale data processing.
+NiFi	1.7.0	Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
+Step 5: Assign masters - next
+Step 6: Assign slaves and clients - DataNode, Node Manager, Client
+Step 7: Customize service
+In credentials:
+enter passwords
+
+In databases:
+Hive:
+Metastore : ip-172-31-59-152.ec2.internal
+HiveServer2 : ip-172-31-59-152.ec2.internal
+Database : New MySQL Database
+Ranger:
+Admin : ip-172-31-59-152.ec2.internal
+Tagsync : 0 host
+Usersync : ip-172-31-59-152.ec2.internal
+
+In configurations:
+YARN :
+	Memory - 8192
+MapReduce:
+	Map memory - 2048
+	Reduce memory - 4096
+	AppMaster memory - 2048
+TEZ:
+	tez.am.resource.memory.mb - 4096
+Hive:
+	TEZ container size - 4096
+	HiveServer2 Heap Size - 1024
+	Metastore Heap Size - 1024
+Step 8,9: click next
+After MySQL Server start:
+[ec2-user@ip-172-31-59-152 tmp]$ mysqladmin --user=root password "Fordcluster95$"
+[ec2-user@ip-172-31-59-152 tmp]$ mysql --user=root --password="Fordcluster95$" -e "SELECT 1+1" - testing
+
+Step 10: Just click complete
+
+https://www.elastic.co/downloads/elasticsearch
+[root@ip-172-31-59-152 install_tmp]# wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.5.2.tar.gz
+[root@ip-172-31-59-152 install_tmp]# tar -xvzf elasticsearch-6.5.2.tar.gz
+[root@ip-172-31-59-152 install_tmp]# cd elasticsearch-6.5.2
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# vi config/elasticsearch.yml
+cluster.name: elasticsearch
+network.host: 172.31.59.152
+
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# ulimit -n 65536
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# sudo useradd elastic -d /home/elastic
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# sudo chown -R elastic:elastic /tmp/install_tmp/elasticsearch-6.5.2
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# sudo su - elastic
+[elastic@ip-172-31-59-152 elasticsearch-6.5.2]# bin/elasticsearch -d -p pid; tail -f logs/elasticsearch.log
+
+In web browser
+http://54.175.175.229:9200/ - to check
+
+https://www.elastic.co/guide/en/kibana/current/install.html
+[elastic@ip-172-31-59-152 elasticsearch-6.5.2]# exit
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# cd ..
+[root@ip-172-31-59-152 elasticsearch-6.5.2]# wget https://artifacts.elastic.co/downloads/kibana/kibana-6.5.2-linux-x86_64.tar.gz
+[root@ip-172-31-59-152 install_tmp]# shasum -a 512 kibana-6.5.2-linux-x86_64.tar.gz
+[root@ip-172-31-59-152 install_tmp]# tar -xzf kibana-6.5.2-linux-x86_64.tar.gz
+[root@ip-172-31-59-152 install_tmp]# cd kibana-6.5.2-linux-x86_64
+[root@ip-172-31-59-152 install_tmp]# vi config/kibana.yml
+server.host: "172.31.59.152"
+elasticsearch.url: "http://172.31.59.152:9200"
+
+[root@ip-172-31-59-152 install_tmp]# mkdir logs
+[root@ip-172-31-59-152 install_tmp]# nohup bin/kibana > logs/kibana.log 2>&1 &
+
+In web browser
+http://54.175.175.229:5601/ - to check
+
+Goto NiFi server: http://ec2-54-175-175-229.compute-1.amazonaws.com:9090/nifi/
+GetTwitter processor:
+In properties:
+	Consumer API keys
+	HpsSnKs5VsWKeCjtjL7iyGWxg (API key)
+	6jByvrLi22hBpntkDnxUrhYyavDIFLevj8haAedQKJTlFErQA4 (API secret key)
+	Access token & access token secret
+	4048119341-jo62wzn9rF83242tXgbQTWguZ02mHjKgFa4aG7x (Access token)
+	04Fa0WbXk5AGNmbJ49rgfVOqvGQJtrITioMpTqi59R4Fq (Access token secret)
+	Language - en
+
+PublishKafka_1_0 processor:
+In settings:
+	Automatically Terminate Relationships : checkbox success only
+In properties:
+	Kafka broker: ip-172-31-59-152.ec2.internal:6667
+	Topic name: rawtweets
+	Delivery guarantee: Best effort
+	Use transactions: False
+
+Add connection from GetTwitter to PublishKafka
+Add connection from PublishKafka to PublishKafka and check failure upon pop up message
+
+[root@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]# su kafka
+[kafka@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ /usr/hdp/current/kafka-broker/bin/kafka-topics.sh --zookeeper ip-172-31-59-152.ec2.internal:2181 --create --topic rawtweets --partitions 1 --replication-factor 1
+[kafka@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ /usr/hdp/current/kafka-broker/bin/kafka-topics.sh --zookeeper ip-172-31-59-152.ec2.internal:2181 --create --topic processedtweets --partitions 1 --replication-factor 1
+
+[kafka@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ /usr/hdp/current/kafka-broker/bin/kafka-console-consumer.sh --zookeeper ip-172-31-59-152.ec2.internal:2181 --topic rawtweets --from-beginning - to test if pipeline from GetTwitter to kafka working fine
+
+{"created_at":"Thu Dec 06 02:06:12 +0000 2018","id":1070499618646048769,"id_str":"1070499618646048769","text":"yo my cousins are all beautiful and i got the ugly genes :((","source":"\u003ca href=\"http:\/\/twitter.com\/download\/iphone\" rel=\"nofollow\"\u003eTwitter for iPhone\u003c\/a\u003e","truncated":false,"in_reply_to_status_id":null,"in_reply_to_status_id_str":null,"in_reply_to_user_id":null,"in_reply_to_user_id_str":null,"in_reply_to_screen_name":null,"user":{"id":937438497891405828,"id_str":"937438497891405828","name":"a basketcase","screen_name":"muydepression","location":"with shane ","url":null,"description":"destruction is a form of creation","translator_type":"none","protected":false,"verified":false,"followers_count":272,"friends_count":816,"listed_count":0,"favourites_count":12525,"statuses_count":4447,"created_at":"Sun Dec 03 21:48:49 +0000 2017","utc_offset":null,"time_zone":null,"geo_enabled":false,"lang":"en","contributors_enabled":false,"is_translator":false,"profile_background_color":"000000","profile_background_image_url":"http:\/\/abs.twimg.com\/images\/themes\/theme1\/bg.png","profile_background_image_url_https":"https:\/\/abs.twimg.com\/images\/themes\/theme1\/bg.png","profile_background_tile":false,"profile_link_color":"D1D0CE","profile_sidebar_border_color":"000000","profile_sidebar_fill_color":"000000","profile_text_color":"000000","profile_use_background_image":false,"profile_image_url":"http:\/\/pbs.twimg.com\/profile_images\/1064001982174806017\/jAyhEkxM_normal.jpg","profile_image_url_https":"https:\/\/pbs.twimg.com\/profile_images\/1064001982174806017\/jAyhEkxM_normal.jpg","profile_banner_url":"https:\/\/pbs.twimg.com\/profile_banners\/937438497891405828\/1541438027","default_profile":false,"default_profile_image":false,"following":null,"follow_request_sent":null,"notifications":null},"geo":null,"coordinates":null,"place":null,"contributors":null,"is_quote_status":false,"quote_count":0,"reply_count":0,"retweet_count":0,"favorite_count":0,"entities":{"hashtags":[],"urls":[],"user_mentions":[],"symbols":[]},"favorited":false,"retweeted":false,"filter_level":"low","lang":"en","timestamp_ms":"1544061972663"}
+
+{"delete":{"status":{"id":726958065329774593,"id_str":"726958065329774593","user_id":736732146,"user_id_str":"736732146"},"timestamp_ms":"1544061972774"}}
+
+{"delete":{"status":{"id":333158247596965889,"id_str":"333158247596965889","user_id":849064776,"user_id_str":"849064776"},"timestamp_ms":"1544061972797"}}
+
+Goto NiFi server: http://ec2-54-175-175-229.compute-1.amazonaws.com:9090/nifi/
+ConsumeKafka_1_0 processor:
+In properties:
+	Kafka broker: ip-172-31-59-152.ec2.internal:6667
+	Topic name: processedtweets
+	Honor transactions: False
+	Group id : nificonsumer
+PutElasticsearchHttp:
+In settings:
+	Automatically Terminate Relationships : checkbox success only
+In properties:
+	Elasticsearch URL: ip-172-31-59-152.ec2.internal:9200
+	Identifier attribute: uuid
+	Index: twitter
+	Type: Default
+
+Add connection from ConsumeKafka to PutElasticsearchHttp
+Add connection from PutElasticsearchHttp to PutElasticsearchHttp and check retry upon pop up message
+Add connection from PutElasticsearchHttp to UpdateAttribute and check failure upon pop up message
+
+To test spark:	
+[kafka@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ exit
+[root@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ su hdfs
+[hdfs@ip-172-31-59-152 kibana-6.5.2-linux-x86_64]$ pyspark --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.1  --master local[2] / [hdfs@ip-172-31-59-152 ec2-user]$ pyspark --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.1  --master yarn --deploy-mode client
+>>> events = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-59-152.ec2.internal:6667").option("subscribe", "dic").option("startingOffsets","earliest").load()
+>>> vents = events.selectExpr("CAST(value AS STRING)")
+>>> query_window = vents.writeStream.outputMode("append").format("memory").queryName("myTable_window").start()
+>>> 18/12/06 02:37:54 WARN NetworkClient: Error while fetching metadata with correlation id 1 : {dic=LEADER_NOT_AVAILABLE}
+
+>>> query_window.stop()
+>>>
+>>> events = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-59-152.ec2.internal:6667").option("subscribe", "rawtweets").option("startingOffsets","earliest").load()
+>>> vents = events.selectExpr("CAST(value AS STRING)")
+>>> query_window = vents.writeStream.outputMode("append").format("memory").queryName("myTable_window").start()
+>>> spark.sql("select * from myTable_window limit 15").show(15,False)
+>>> query_window.stop()
+
+Goto NiFi server:
+Start PublishKafka and PutElasticsearchHttp
+
+>>> query_window = vents.writeStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-59-152.ec2.internal:6667").option("topic", "processedtweets").outputMode("complete").start()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/hdp/current/spark2-client/python/pyspark/sql/streaming.py", line 897, in start
+    return self._sq(self._jwrite.start())
+  File "/usr/hdp/current/spark2-client/python/lib/py4j-0.10.7-src.zip/py4j/java_gateway.py", line 1257, in __call__
+  File "/usr/hdp/current/spark2-client/python/pyspark/sql/utils.py", line 69, in deco
+    raise AnalysisException(s.split(': ', 1)[1], stackTrace)
+pyspark.sql.utils.AnalysisException: u'checkpointLocation must be specified either through option("checkpointLocation", ...) or SparkSession.conf.set("spark.sql.streaming.checkpointLocation", ...);'
+
+To tackle this error:
+In a new CLI:
+[ec2-user@ip-172-31-59-152 ~]$ sudo su
+[root@ip-172-31-59-152 ec2-user]# su hdfs
+[hdfs@ip-172-31-59-152 ec2-user]$ hdfs dfs -ls /
+[hdfs@ip-172-31-59-152 ec2-user]$ hdfs dfs -mkdir /tmp/spark_checkpoint_dir
+
+>>> query_window = vents.writeStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-59-152.ec2.internal:6667").option("topic", "processedtweets").option("checkpointLocation", "/tmp/spark_checkpoint_dir").outputMode("complete").start()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "/usr/hdp/current/spark2-client/python/pyspark/sql/streaming.py", line 897, in start
+    return self._sq(self._jwrite.start())
+  File "/usr/hdp/current/spark2-client/python/lib/py4j-0.10.7-src.zip/py4j/java_gateway.py", line 1257, in __call__
+  File "/usr/hdp/current/spark2-client/python/pyspark/sql/utils.py", line 69, in deco
+    raise AnalysisException(s.split(': ', 1)[1], stackTrace)
+pyspark.sql.utils.AnalysisException: u'Complete output mode not supported when there are no streaming aggregations on streaming DataFrames/Datasets;;\nProject [cast(value#51 as string) AS value#64]\n+- StreamingRelationV2 org.apache.spark.sql.kafka010.KafkaSourceProvider@4225abce, kafka, Map(startingOffsets -> earliest, subscribe -> rawtweets, kafka.bootstrap.servers -> ip-172-31-59-152.ec2.internal:6667), [key#50, value#51, topic#52, partition#53, offset#54L, timestamp#55, timestampType#56], StreamingRelation DataSource(org.apache.spark.sql.SparkSession@5c530225,kafka,List(),None,List(),None,Map(startingOffsets -> earliest, subscribe -> rawtweets, kafka.bootstrap.servers -> ip-172-31-59-152.ec2.internal:6667),None), kafka, [key#43, value#44, topic#45, partition#46, offset#47L, timestamp#48, timestampType#49]\n'
+
+To tackle this error:
+remove ".outputMode("complete")" from the previous command
+
+>>> query_window = vents.writeStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-59-152.ec2.internal:6667").option("topic", "processedtweets").option("checkpointLocation", "/tmp/spark_checkpoint_dir").start()
+
+Goto NiFi server:
+Observer that the tweets that had earlier been consumed are published.
+In Elasticsearch(http://54.175.175.229:9200/twitter?pretty) observe the published streams
+
+In the new CLI:
+Delete the streams from ELasticSearch: [hdfs@ip-172-31-59-152 ec2-user]$ curl -XDELETE ip-172-31-59-152.ec2.internal:9200/twitter
+{"acknowledged":true} ---> response from Elasticsearch
+
+http://54.175.175.229:9200/twitter/_mapping?pretty - copy mapping
+
+In the new CLI: paste the template
+[hdfs@ip-172-31-59-152 tmp]$ curl -XPUT 172.31.59.152:9200/_template/twitter1 -H'Content-Type: application/json' -d '{
+  "template" : "twitter1",
+    "settings" : {
+      "index" : {
+        "number_of_shards" : "2",
+        "number_of_replicas" : "2"
+      }
+    },
+    "mappings" : {
+      "default" : {
+        "properties" : {
+          "favorite_count" : {
+            "type" : "long"
+          },
+          "hashtags" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "id" : {
+            "type" : "long"
+          },
+          "language" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "location" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "mood" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "retweet_count" : {
+            "type" : "long"
+          },
+          "tweet" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "tweet_time" : {
+            "type" : "date"
+          },
+          "url" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "user_name" : {
+            "type" : "text",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          }
+        }
+      }
+    },
+    "aliases" : { }
+  }
+}'
+{"acknowledged":true}
+
+curl -XPUT 172.31.59.152:9200/twitter/_settings -H'Content-Type: application/json' -d '{"index":{"number_of_replicas": 2}}'
+
+Kafka commands:
+Describe- /usr/hdp/current/kafka-broker/bin/kafka-topics.sh --zookeeper ip-172-31-59-152.ec2.internal:2181 --describe --topic incomingtweets
+Alter partition - /usr/hdp/current/kafka-broker/bin/kafka-topics.sh --zookeeper ip-172-31-59-152.ec2.internal:2181 --alter --topic  incomingtweets --partitions 2
+
+YARN stop container:
+yarn container -status container_e04_1544193493366_0001_01_000001

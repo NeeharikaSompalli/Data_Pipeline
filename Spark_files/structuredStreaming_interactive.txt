@@ -1,0 +1,12 @@
+pyspark --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.3.1    
+>>> events = spark.readStream.format("kafka").option("kafka.bootstrap.servers", "ip-172-31-3-137.ec2.internal:6667").option("subscribe", "dic").option("startingOffsets","earliest").load()
+>>> vents = events.selectExpr("CAST(value AS STRING)")
+>>> query_window = vents \
+...     .writeStream \
+...     .outputMode("append") \
+...     .format("memory") \
+...     .queryName("myTable_window") \
+...     .start()
+
+>>> spark.sql("select * from myTable_window limit 15").show(15,False)
+>>>spark.sql("select count(*) from myTable_window limit 10").show(10)
